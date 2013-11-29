@@ -16,6 +16,14 @@ public class GemVo
     public var vy:Number;
     /**重力*/
     public var g:Number;
+    /**宽度*/
+    public var width:Number;
+    /**高度*/
+    public var height:Number
+    /**行数*/
+    public var row:int;
+    /**列表数*/
+    public var column:int;
     /**用户数据*/
     public var userData:*;
 }

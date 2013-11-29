@@ -14,11 +14,7 @@ public class GemTest extends Sprite
     private var spt:Sprite;
     public function GemTest() 
     {
-        this.gem = new Gem(stage, 8, 8, 60, 60);
-        this.spt = new Sprite();
-        this.spt.x = 200;
-        this.spt.y = 60;
-        this.addChild(this.spt);
+        this.gem = new Gem(7, stage, 8, 8, 5, 5, 200, 60, 50, 50);
         this.initDrawGem(this.gem.gemList);
     }
     
@@ -38,14 +34,13 @@ public class GemTest extends Sprite
             for (var j:int = 0; j < len; j += 1) 
             {
                 gVo = gemList[i][j];
-                gVo.colorType = Random.randint(1, 5);
                 gVo.userData = new Sprite();
                 Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
-                Sprite(gVo.userData).graphics.drawRoundRect(-25, -25, 50, 50, 5, 5);
+                Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
                 Sprite(gVo.userData).graphics.endFill();
                 Sprite(gVo.userData).x = gVo.x;
                 Sprite(gVo.userData).y = gVo.y;
-                this.spt.addChild(Sprite(gVo.userData));
+                this.addChild(Sprite(gVo.userData));
             }
         }
     }
