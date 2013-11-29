@@ -1,10 +1,11 @@
 package  
 {
-import common.utils.Random;
 import data.GemVo;
 import flash.display.Stage;
 import flash.events.MouseEvent;
 import flash.utils.Dictionary;
+import utils.ArrayUtil;
+import utils.Random;
 /**
  * ...宝石迷阵算法
  * @author Kanon
@@ -21,6 +22,8 @@ public class Gem
     private var minLinkNum:uint;
     //宝石列表
     private var _gemList:Array;
+	//颜色列表
+	private var colorList:Array;
     //宝石字典
     private var gemDict:Dictionary;
     //横向间隔
@@ -93,7 +96,12 @@ public class Gem
      */
     private function initData():void
     {
-        this._gemList = [];
+		this.colorList = [];
+		for (var i:int = 1; i <= this.totalColorType; i += 1)
+		{
+			this.colorList.push(i);
+		}
+		this._gemList = [];
         this.gemDict = new Dictionary();
         var gVo:GemVo;
         var color:int;
@@ -112,24 +120,45 @@ public class Gem
                 this._gemList[row][column] = gVo;
                 this.gemDict[gVo] = gVo;
                 
-                if (row == 0 && column == 0)
+                if (row < this.minLinkNum - 1 && 
+					column < this.minLinkNum - 1)
                 {
                     //第一行 第一列
                     //随机任意颜色
-                    gVo.colorType = Random.randint(1, this.totalColorType);
+                    gVo.colorType = this.randomColor();
                 }
                 else
                 {
-                    if (row != 0 && column == 0)
-                    {
-                        //第一行
-                        color = this.getLeftVoColor(gVo.row, gVo.column);
-                        if (color != 0)
-                        {
-                            //如果左边相邻有2个以上的相同颜色则不使用此颜色
-                        }
-                        else gVo.colorType = Random.randint(1, this.totalColorType);
-                    }
+					//001111
+					//001111
+					//222222
+					//222222
+					if (row < this.minLinkNum - 1 && 
+						column >= this.minLinkNum - 1)
+					{
+						//前2行 后2列
+						color = this.getLeftVoColor(row, column);
+                        //如果左边相邻有2个以上的相同颜色则不使用此颜色
+						if (color == 0) gVo.colorType = this.randomColor();
+						else gVo.colorType = this.randomColor(color);
+					}
+					else if (column < this.minLinkNum - 1 && 
+							row >= this.minLinkNum - 1)
+					{
+						//前2列 后2行
+						color = this.getUpVoColor(row, column);
+						if (color == 0) gVo.colorType = this.randomColor();
+						else gVo.colorType = this.randomColor(color);
+					}
+					else
+					{
+						gVo.colorType = 0;
+						//前2行 后2列
+						var color1:int = this.getLeftVoColor(row, column);
+						var color2:int = this.getUpVoColor(row, column);
+						//根据前面相同颜色 生成不重复超过(this.minLinkNum - 1)次的颜色
+						gVo.colorType = this.randomColor(color1, color2);
+					}
                 }
             }
         }
@@ -145,19 +174,68 @@ public class Gem
      */
     private function getLeftVoColor(curRow:int, curColumn:int):int
     {
-        
+		if (curColumn == 0) return 0;
+		var color:int = 0;
+		var prevGVo:GemVo;
+		//相同颜色的数量
+		var num:int = 0;
+        for (var column:int = curColumn - 1; column >= curColumn - 2; column -= 1) 
+        {
+			prevGVo = this._gemList[curRow][column];
+			if (color == 0) 
+			{
+				color = prevGVo.colorType;
+			}
+			else
+			{
+				if (color == prevGVo.colorType) num++;
+				else break;
+			}
+		}
+		if (num > 0) return color;
+		return 0;
     }
+	
+	/**
+	 * 获取相邻上边超过默认链接数量的相同颜色数据的颜色
+	 * @param	curRow
+	 * @param	curColumn
+	 * @return  相邻的颜色类型，如果未超过则返回0
+	 */
+	private function getUpVoColor(curRow:int, curColumn:int):int
+    {
+		if (curRow == 0) return 0;
+		var color:int = 0;
+		var prevGVo:GemVo;
+		//相同颜色的数量
+		var num:int = 0;
+		for (var row:int = curRow - 1; row >= curRow - 2; row -= 1) 
+        {
+			prevGVo = this._gemList[row][curColumn];
+			if (color == 0) 
+			{
+				color = prevGVo.colorType;
+			}
+			else
+			{
+				if (color == prevGVo.colorType) num++;
+				else break;
+			}
+		}
+		if (num > 0) return color;
+		return 0;
+	}
     
     /**
      * 获取当前左边横向上的相邻相同颜色的数量
      * @param	curRow              当前行坐标
      * @param	curColumn           当前列坐标
-     * @param	colorType           当前颜色
+     * @param	color           	当前颜色
      * @return  相同颜色的数据列表
      */
     private function getLeftSameColorVoList(curRow:int, curColumn:int, color:int):Array
     {
-        if (curRow == 0) return 0;
+        if (curRow == 0) return null;
         var prevGVo:GemVo;
         var arr:Array = [];
         for (var column:int = curColumn - 1; column >= 0; column -= 1) 
@@ -191,6 +269,28 @@ public class Gem
         }
         return null;
     }
+	
+	/**
+	 * 随机颜色
+	 * @param	...args			忽略的颜色
+	 * @return	选取的颜色
+	 */
+	private function randomColor(...args):int
+	{
+		if (!args || args.length == 0) return Random.randint(1, this.totalColorType);
+		var colorArr:Array = ArrayUtil.cloneList(this.colorList);
+		var length:int = args.length;
+		var index:int;
+		var color:int;
+		for (var i:int = 0; i < length; i += 1) 
+		{
+			color = args[i];
+			if (color == 0) continue;
+			index = colorArr.indexOf(color);
+			colorArr.splice(index, 1);
+		}
+		return Random.choice(colorArr);
+	}
     
     /**
      * 销毁
@@ -201,6 +301,7 @@ public class Gem
         this.stage = null;
         this._gemList = null;
         this.gemDict = null;
+		this.colorList = null;
     }
     
     /**
