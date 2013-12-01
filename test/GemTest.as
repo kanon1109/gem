@@ -13,7 +13,7 @@ public class GemTest extends Sprite
 {
     private var gem:Gem;
     private var colorAry:Array = [null, 0xFF00FF, 0xFFCC00, 0x0000FF, 
-										0x55FF33, 0x55CCFF, 0xC88CC0];
+										/*0x55FF33, 0x55CCFF, 0xC88CC0*/];
 	private var rect:Sprite;
 	private var selectedGVo:GemVo;
     public function GemTest() 
