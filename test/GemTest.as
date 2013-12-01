@@ -1,5 +1,7 @@
 package  
 {
+import com.greensock.TweenMax;
+import com.greensock.easing.Sine;
 import data.GemVo;
 import events.GemEvent;
 import flash.display.Sprite;
@@ -13,7 +15,7 @@ public class GemTest extends Sprite
 {
     private var gem:Gem;
     private var colorAry:Array = [null, 0xFF00FF, 0xFFCC00, 0x0000FF, 
-										/*0x55FF33, 0x55CCFF, 0xC88CC0*/];
+										0x55FF33, /*0x55CCFF, 0xC88CC0*/];
 	private var rect:Sprite;
 	private var selectedGVo:GemVo;
     public function GemTest() 
@@ -21,8 +23,27 @@ public class GemTest extends Sprite
 		this.rect = new Rect();
         this.gem = new Gem(this.colorAry.length - 1, stage, 8, 8, 5, 5, 200, 60, 50, 50);
         this.gem.addEventListener(GemEvent.SELECT, selectGemHandler);
+        this.gem.addEventListener(GemEvent.REMOVE, removeGemHandler);
 		this.initDrawGem();
 		this.addEventListener(Event.ENTER_FRAME, loop);
+    }
+	
+	/**
+     * 绘制宝石
+     */
+    private function initDrawGem():void 
+    {
+        var gVo:GemVo;
+		for each (gVo in this.gem.gemDict) 
+		{
+			gVo.userData = new Sprite();
+			Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
+			Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
+			Sprite(gVo.userData).graphics.endFill();
+			Sprite(gVo.userData).x = gVo.x;
+			Sprite(gVo.userData).y = gVo.y;
+			this.addChild(Sprite(gVo.userData));
+		}
     }
 	
 	//选中宝石或者取消选择
@@ -44,23 +65,17 @@ public class GemTest extends Sprite
 		}
 	}
     
-    /**
-     * 绘制宝石
-     */
-    private function initDrawGem():void 
-    {
-        var gVo:GemVo;
-		for each (gVo in this.gem.gemDict) 
+	private function removeGemHandler(event:GemEvent):void 
+	{
+		var gVo:GemVo = event.gVo as GemVo;
+		if (gVo.userData && gVo.userData is Sprite)
 		{
-			gVo.userData = new Sprite();
-			Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
-			Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
-			Sprite(gVo.userData).graphics.endFill();
-			Sprite(gVo.userData).x = gVo.x;
-			Sprite(gVo.userData).y = gVo.y;
-			this.addChild(Sprite(gVo.userData));
+			TweenMax.to(gVo.userData, .2, { scaleX:0, scaleY:0, ease:Sine.easeOut } );
+			//if (Sprite(gVo.userData).parent)
+				//Sprite(gVo.userData).parent.removeChild(Sprite(gVo.userData));
 		}
-    }
+	}
+	
 	
 	/**
 	 * 渲染

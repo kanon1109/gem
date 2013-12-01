@@ -4,7 +4,6 @@ import com.greensock.easing.Sine;
 import com.greensock.TweenMax;
 import data.GemVo;
 import events.GemEvent;
-import flash.display.Sprite;
 import flash.display.Stage;
 import flash.events.EventDispatcher;
 import flash.events.MouseEvent;
@@ -51,8 +50,12 @@ public class Gem extends EventDispatcher
     private var totalHeight:Number;
 	//当前点击的宝石数据
 	private var curGVo:GemVo;
-	//宝石事件
+	//宝石被选中事件
 	private var gemSelectEvent:GemEvent;
+	//宝石被销毁事件
+	private var gemRemoveEvent:GemEvent;
+	//待销毁的相同颜色的数据列表
+	private var sameColorList:Array;
     /**
      * @param	totalColorType      总的颜色类型
      * @param	stage               舞台用于点击
@@ -93,6 +96,7 @@ public class Gem extends EventDispatcher
     private function initEvent():void 
     {
 		this.gemSelectEvent = new GemEvent(GemEvent.SELECT);
+		this.gemRemoveEvent = new GemEvent(GemEvent.REMOVE);
         this.stage.addEventListener(MouseEvent.MOUSE_DOWN, mouseDownHandler);
     }
     
@@ -287,7 +291,6 @@ public class Gem extends EventDispatcher
         for (var row:int = curRow - 1; row >= 0; row -= 1) 
         {
             prevGVo = this.gemList[row][curColumn];
-			trace("getUpSameColorVoList .colorType, color", prevGVo.colorType, color);
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -410,18 +413,36 @@ public class Gem extends EventDispatcher
 	 * 交换位置效果
 	 * @param	curGVo	第一次选中的宝石数据
 	 * @param	gVo		第二次选中的宝石数据
+	 * @param	yoyo	是否来回
 	 */
 	private function changePos(curGVo:GemVo, gVo:GemVo, yoyo:Boolean):void
 	{
 		var repeat:int = 0;
-		if (yoyo) repeat = 1;
+		var motionComplete:Function = onMotionComplete;
+		if (yoyo) 
+		{
+			repeat = 1;
+			motionComplete = null;
+		}
 		//交换位置
 		TweenMax.to(curGVo, .3, { x:gVo.x, y:gVo.y, 
 									ease:Sine.easeOut, 
-									repeat:repeat, yoyo:yoyo } );
+									repeat:repeat, yoyo:yoyo, onComplete:motionComplete } );
 		TweenMax.to(gVo, .3, { x:curGVo.x, y:curGVo.y, 
 									ease:Sine.easeOut, 
 									repeat:repeat, yoyo:yoyo } );
+	}
+	
+	private function onMotionComplete():void 
+	{
+		var length:int = this.sameColorList.length;
+		var gVo:GemVo;
+		for (var i:int = length - 1; i >= 0; i -= 1) 
+		{
+			gVo = this.sameColorList[i];
+			this.removeGem(gVo);
+			this.sameColorList.splice(i, 1);
+		}
 	}
 	
 	/**
@@ -429,16 +450,37 @@ public class Gem extends EventDispatcher
 	 * @param	curGVo	第一次选中的宝石数据
 	 * @param	gVo		第二次选中的宝石数据
 	 */
-	private function checkColor(curGVo:GemVo, gVo:GemVo):void
+	private function checkColor(prevGVo:GemVo, curGVo:GemVo):void
 	{
-		if (curGVo.colorType == gVo.colorType) 
+		if (prevGVo.colorType == curGVo.colorType) 
 		{
-			this.changePos(curGVo, gVo, true);
-			this.curGVo = null;
-			this.gemSelectEvent.gVo = null;
-			this.dispatchEvent(this.gemSelectEvent);
-			return;
+			this.changePos(prevGVo, curGVo, true);
 		}
+		else
+		{
+			if (prevGVo.column == curGVo.column)
+				this.sameColorList = this.checkVColor(prevGVo, curGVo); //判断横向颜色
+			else if (prevGVo.row == curGVo.row)
+				this.sameColorList = this.checkHColor(prevGVo, curGVo); //判断纵向颜色
+			
+			if (sameColorList.length == 0)
+				this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
+			else
+				this.changePos(prevGVo, curGVo, false); //有相同颜色
+		}
+		this.curGVo = null;
+		this.gemSelectEvent.gVo = null;
+		this.dispatchEvent(this.gemSelectEvent);
+	}
+	
+	/**
+	 * 判断纵向颜色
+	 * @param	curGVo	第一次选中的宝石数据
+	 * @param	gVo		第二次选中的宝石数据
+	 * @return	待消除的列表
+	 */
+	private function checkVColor(curGVo:GemVo, gVo:GemVo):Array
+	{
 		//横向相同颜色的列表
 		var sameVColorList:Array = [];
 		//纵向相同颜色的列表
@@ -447,132 +489,120 @@ public class Gem extends EventDispatcher
 		var tempHArr:Array;
 		//临时纵向列表
 		var tempVArr:Array;
-		//行列
-		var row:int;
-		var column:int;
 		//交换的2个数据
 		var gVo1:GemVo;
 		var gVo2:GemVo;
-		var i:int
-		var vo:GemVo;
-		if (curGVo.row == gVo.row)
+		//纵向交换
+		if (curGVo.row < gVo.row)
 		{
-			//横向交换
-			if (curGVo.column < gVo.column)
-			{
-				//从左往右交换 
-				gVo1 = curGVo;
-				gVo2 = gVo;
-			}
-			else
-			{
-				//从右往左交换
-				gVo1 = gVo;
-				gVo2 = curGVo;
-			}
-			//先判断左边
-			//获取横向相同的列表
-			tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
-			//如果相同数量大于this.minSameNum则保持至sameHColorList
-			if (tempHArr.length >= this.minSameNum - 1) 
-				sameHColorList = sameHColorList.concat(tempHArr);
-			
-			//判断上、下面
-			//纵向相同的列表
-			tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
-			tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
-			if (tempVArr.length >= this.minSameNum - 1) 
-				sameVColorList = sameVColorList.concat(tempVArr);
-			
-			//再判断右边
-			tempHArr = this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
-			if (tempHArr.length >= this.minSameNum - 1) 
-				sameHColorList = sameHColorList.concat(tempHArr);
-			//判断上、下面
-			//纵向相同的列表
-			tempVArr = this.getUpSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
-			tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
-			if (tempVArr.length >= this.minSameNum - 1) 
-				sameVColorList = sameVColorList.concat(tempVArr);
-			
-			for (i = 0; i < sameHColorList.length; i++) 
-			{
-				vo = sameHColorList[i];
-				if (vo.userData is Sprite)
-				{
-					Sprite(vo.userData).alpha = .3;
-				}
-			}
-			
-			for (i = 0; i < sameVColorList.length; i++) 
-			{
-				vo = sameVColorList[i];
-				if (vo.userData is Sprite)
-				{
-					Sprite(vo.userData).alpha = .3;
-				}
-			}
+			//从上往下交换
+			gVo1 = curGVo;
+			gVo2 = gVo;
 		}
-		else if (curGVo.column == gVo.column)
+		else
 		{
-			//纵向交换
-			if (curGVo.row < gVo.row)
-			{
-				//从上往下交换
-				gVo1 = curGVo;
-				gVo2 = gVo;
-			}
-			else
-			{
-				//从下往上交换
-				gVo1 = gVo;
-				gVo2 = curGVo;
-			}
-			
-			//先判断上边
-			//获取纵向相同的列表
-			tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
-			if (tempVArr.length >= this.minSameNum - 1) 
-				sameVColorList = sameVColorList.concat(tempVArr);
-				
-			//判断左、右面
-			//横向向相同的列表
-			tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
-			tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
-			if (tempHArr.length >= this.minSameNum - 1) 
-				sameHColorList = sameHColorList.concat(tempHArr);
-				
-			//先判断下边
-			//获取纵向相同的列表
-			tempVArr = this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
-			if (tempVArr.length >= this.minSameNum - 1) 
-				sameVColorList = sameVColorList.concat(tempVArr);
-				
-			//判断左、右面
-			//横向向相同的列表
-			tempHArr = this.getLeftSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
-			tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
-			if (tempHArr.length >= this.minSameNum - 1) 
-				sameHColorList = sameHColorList.concat(tempHArr);
-				
-			for (i = 0; i < sameHColorList.length; i++) 
-			{
-				vo = sameHColorList[i];
-				if (vo.userData is Sprite)
-				{
-					Sprite(vo.userData).alpha = .3;
-				}
-			}
-			
-			for (i = 0; i < sameVColorList.length; i++) 
-			{
-				vo = sameVColorList[i];
-				if (vo.userData is Sprite)
-				{
-					Sprite(vo.userData).alpha = .3;
-				}
-			}
+			//从下往上交换
+			gVo1 = gVo;
+			gVo2 = curGVo;
 		}
+		//先判断上边
+		//获取纵向相同的列表
+		tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
+		if (tempVArr.length >= this.minSameNum - 1) 
+			sameVColorList = sameVColorList.concat(tempVArr);
+			
+		//判断左、右面
+		//横向向相同的列表
+		tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
+		tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
+		if (tempHArr.length >= this.minSameNum - 1) 
+			sameHColorList = sameHColorList.concat(tempHArr);
+			
+		//先判断下边
+		//获取纵向相同的列表
+		tempVArr = this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
+		if (tempVArr.length >= this.minSameNum - 1) 
+			sameVColorList = sameVColorList.concat(tempVArr);
+			
+		//判断左、右面
+		//横向向相同的列表
+		tempHArr = this.getLeftSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
+		tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
+		if (tempHArr.length >= this.minSameNum - 1) 
+			sameHColorList = sameHColorList.concat(tempHArr);
+		return sameHColorList.concat(sameVColorList);
+	}
+	
+	/**
+	 * 判断横向颜色
+	 * @param	curGVo	第一次选中的宝石数据
+	 * @param	gVo		第二次选中的宝石数据
+	 * @return	待消除的列表
+	 */
+	private function checkHColor(curGVo:GemVo, gVo:GemVo):Array
+	{
+		//横向相同颜色的列表
+		var sameVColorList:Array = [];
+		//纵向相同颜色的列表
+		var sameHColorList:Array = [];
+		//临时横向列表
+		var tempHArr:Array;
+		//临时纵向列表
+		var tempVArr:Array;
+		//交换的2个数据
+		var gVo1:GemVo;
+		var gVo2:GemVo;
+		//横向交换
+		if (curGVo.column < gVo.column)
+		{
+			//从左往右交换 
+			gVo1 = curGVo;
+			gVo2 = gVo;
+		}
+		else
+		{
+			//从右往左交换
+			gVo1 = gVo;
+			gVo2 = curGVo;
+		}
+		//先判断左边
+		//获取横向相同的列表
+		tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
+		//如果相同数量大于this.minSameNum则保持至sameHColorList
+		if (tempHArr.length >= this.minSameNum - 1) 
+			sameHColorList = sameHColorList.concat(tempHArr);
+		
+		//判断上、下面
+		//纵向相同的列表
+		tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
+		tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
+		if (tempVArr.length >= this.minSameNum - 1) 
+			sameVColorList = sameVColorList.concat(tempVArr);
+		
+		//再判断右边
+		tempHArr = this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
+		if (tempHArr.length >= this.minSameNum - 1) 
+			sameHColorList = sameHColorList.concat(tempHArr);
+		//判断上、下面
+		//纵向相同的列表
+		tempVArr = this.getUpSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
+		tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
+		if (tempVArr.length >= this.minSameNum - 1) 
+			sameVColorList = sameVColorList.concat(tempVArr);
+		return sameHColorList.concat(sameVColorList);
+	}
+	
+	
+	/**
+	 * 销毁宝石数据
+	 * @param	gVo		宝石数据
+	 */
+	private function removeGem(gVo:GemVo):void
+	{
+		this.gemRemoveEvent.gVo = gVo;
+		this.dispatchEvent(this.gemRemoveEvent);
+		this.gemList[gVo.row][gVo.column] = null;
+		delete this._gemDict[gVo];
 	}
 	
 	//***********public function***********
@@ -630,6 +660,7 @@ public class Gem extends EventDispatcher
         this._gemDict = null;
 		this.curGVo = null;
 		this.colorList = null;
+		this.sameColorList = null;
     }
 	
 	/**
