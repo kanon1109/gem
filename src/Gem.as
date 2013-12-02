@@ -249,6 +249,7 @@ public class Gem extends EventDispatcher
         for (var column:int = curColumn - 1; column >= 0; column -= 1) 
         {
             prevGVo = this.gemList[curRow][column];
+            if (!prevGVo) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -270,6 +271,7 @@ public class Gem extends EventDispatcher
         for (var column:int = curColumn + 1; column < this.columns; column += 1) 
         {
             prevGVo = this.gemList[curRow][column];
+            if (!prevGVo) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -291,6 +293,7 @@ public class Gem extends EventDispatcher
         for (var row:int = curRow - 1; row >= 0; row -= 1) 
         {
             prevGVo = this.gemList[row][curColumn];
+            if (!prevGVo) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -312,6 +315,7 @@ public class Gem extends EventDispatcher
         for (var row:int = curRow + 1; row < this.rows; row += 1) 
         {
             prevGVo = this.gemList[row][curColumn];
+            if (!prevGVo) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -386,6 +390,7 @@ public class Gem extends EventDispatcher
 	 */
 	private function checkSameGem(gVo1:GemVo, gVo2:GemVo):Boolean
 	{
+        if (!gVo1 || !gVo2) return false;
 		return gVo1.row == gVo2.row && gVo1.column == gVo2.column;
 	}
 	
@@ -415,7 +420,7 @@ public class Gem extends EventDispatcher
 	 * @param	gVo		第二次选中的宝石数据
 	 * @param	yoyo	是否来回
 	 */
-	private function changePos(curGVo:GemVo, gVo:GemVo, yoyo:Boolean):void
+	private function changePos(prevGVo:GemVo, curGVo:GemVo, yoyo:Boolean):void
 	{
 		var repeat:int = 0;
 		var motionComplete:Function = onMotionComplete;
@@ -424,11 +429,23 @@ public class Gem extends EventDispatcher
 			repeat = 1;
 			motionComplete = null;
 		}
+        else
+        {
+            //交换行列坐标
+            var row:int = prevGVo.row;
+            var column:int = prevGVo.column;
+            this.gemList[curGVo.row][curGVo.column] = prevGVo;
+            this.gemList[row][column] = curGVo;
+            prevGVo.row = curGVo.row;
+            prevGVo.column = curGVo.column;
+            curGVo.row = row;
+            curGVo.column = column;
+        }
 		//交换位置
-		TweenMax.to(curGVo, .3, { x:gVo.x, y:gVo.y, 
+		TweenMax.to(prevGVo, .3, { x:curGVo.x, y:curGVo.y, 
 									ease:Sine.easeOut, 
 									repeat:repeat, yoyo:yoyo, onComplete:motionComplete } );
-		TweenMax.to(gVo, .3, { x:curGVo.x, y:curGVo.y, 
+		TweenMax.to(curGVo, .3, { x:prevGVo.x, y:prevGVo.y, 
 									ease:Sine.easeOut, 
 									repeat:repeat, yoyo:yoyo } );
 	}
@@ -463,6 +480,7 @@ public class Gem extends EventDispatcher
 			else if (prevGVo.row == curGVo.row)
 				this.sameColorList = this.checkHColor(prevGVo, curGVo); //判断纵向颜色
 			
+            trace("sameColorList.length", sameColorList.length);
 			if (sameColorList.length == 0)
 				this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
 			else
@@ -509,27 +527,43 @@ public class Gem extends EventDispatcher
 		//获取纵向相同的列表
 		tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
 		if (tempVArr.length >= this.minSameNum - 1) 
+        {
+            //保存起始节点
+            tempVArr.unshift(gVo2);
 			sameVColorList = sameVColorList.concat(tempVArr);
+        }
 			
 		//判断左、右面
 		//横向向相同的列表
 		tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
 		tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
 		if (tempHArr.length >= this.minSameNum - 1) 
+        {
+            //如果纵向未保存过起始
+            if (sameVColorList.indexOf(gVo2) == -1) tempHArr.unshift(gVo2);
 			sameHColorList = sameHColorList.concat(tempHArr);
-			
+        }
+		
 		//先判断下边
 		//获取纵向相同的列表
 		tempVArr = this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
 		if (tempVArr.length >= this.minSameNum - 1) 
+        {
+            //保存起始节点
+            tempVArr.unshift(gVo1);
 			sameVColorList = sameVColorList.concat(tempVArr);
+        }
 			
 		//判断左、右面
 		//横向向相同的列表
 		tempHArr = this.getLeftSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
 		tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
 		if (tempHArr.length >= this.minSameNum - 1) 
+        {
+            //如果纵向未保存过起始
+            if (sameHColorList.indexOf(gVo1) == -1) tempHArr.unshift(gVo1);
 			sameHColorList = sameHColorList.concat(tempHArr);
+        }
 		return sameHColorList.concat(sameVColorList);
 	}
 	
@@ -570,25 +604,41 @@ public class Gem extends EventDispatcher
 		tempHArr = this.getLeftSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
 		//如果相同数量大于this.minSameNum则保持至sameHColorList
 		if (tempHArr.length >= this.minSameNum - 1) 
+        {
+            //保存起始节点
+            tempHArr.unshift(gVo2);
 			sameHColorList = sameHColorList.concat(tempHArr);
+        }
 		
 		//判断上、下面
 		//纵向相同的列表
 		tempVArr = this.getUpSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType);
 		tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo1.row, gVo1.column, gVo2.colorType));
 		if (tempVArr.length >= this.minSameNum - 1) 
+        {
+            //如果纵向未保存过起始
+            if (sameHColorList.indexOf(gVo2) == -1) tempVArr.unshift(gVo2);
 			sameVColorList = sameVColorList.concat(tempVArr);
+        }
 		
 		//再判断右边
 		tempHArr = this.getRightSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
 		if (tempHArr.length >= this.minSameNum - 1) 
+        {
+            //保存起始节点
+            tempHArr.unshift(gVo1);
 			sameHColorList = sameHColorList.concat(tempHArr);
+        }
 		//判断上、下面
 		//纵向相同的列表
 		tempVArr = this.getUpSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType);
 		tempVArr = tempVArr.concat(this.getDownSameColorVoList(gVo2.row, gVo2.column, gVo1.colorType));
 		if (tempVArr.length >= this.minSameNum - 1) 
+        {
+            //如果纵向未保存过起始
+            if (sameHColorList.indexOf(gVo1) == -1) tempVArr.unshift(gVo1);
 			sameVColorList = sameVColorList.concat(tempVArr);
+        }
 		return sameHColorList.concat(sameVColorList);
 	}
 	
@@ -604,6 +654,17 @@ public class Gem extends EventDispatcher
 		this.gemList[gVo.row][gVo.column] = null;
 		delete this._gemDict[gVo];
 	}
+    
+    /**
+     * 是否处于代销毁的相同颜色列表中
+     * @return      是否在列表中
+     */
+    private function inSameColorList(gVo:GemVo):Boolean
+    {
+        if (this.sameColorList && this.sameColorList.indexOf(gVo) != -1)
+            return true;
+        return false;
+    }
 	
 	//***********public function***********
 	/**
@@ -617,6 +678,12 @@ public class Gem extends EventDispatcher
 		{
 			//没有宝石 则返回第一个点击的宝石
 			this.curGVo = this.getGemVoByPos(posX, posY);
+            if (this.inSameColorList(this.curGVo)) 
+            {
+                trace("处于销毁列表中");
+                this.curGVo = null;
+                return
+            }
 			this.gemSelectEvent.gVo = this.curGVo;
 			this.dispatchEvent(this.gemSelectEvent);
 		}
@@ -627,6 +694,7 @@ public class Gem extends EventDispatcher
 			//相同则取消点击
 			if (this.checkSameGem(this.curGVo, gVo))
 			{
+                trace("相同点击");
 				this.curGVo = null;
 				this.gemSelectEvent.gVo = null;
 				this.dispatchEvent(this.gemSelectEvent);
@@ -638,6 +706,7 @@ public class Gem extends EventDispatcher
 				TweenMax.isTweening(gVo))
 			{
 				//不属于周围4个或者点击的2个点都在运动中
+                trace("不属于周围4个");
 				this.curGVo = gVo;
 				this.gemSelectEvent.gVo = gVo;
 				this.dispatchEvent(this.gemSelectEvent);

@@ -70,13 +70,19 @@ public class GemTest extends Sprite
 		var gVo:GemVo = event.gVo as GemVo;
 		if (gVo.userData && gVo.userData is Sprite)
 		{
-			TweenMax.to(gVo.userData, .2, { scaleX:0, scaleY:0, ease:Sine.easeOut } );
-			//if (Sprite(gVo.userData).parent)
-				//Sprite(gVo.userData).parent.removeChild(Sprite(gVo.userData));
+            var posX:Number = gVo.x + gVo.width * .5;
+            var posY:Number = gVo.y + gVo.height * .5;
+			TweenMax.to(gVo.userData, .2, { scaleX:0, scaleY:0, 
+                                            x:posX, y:posY,
+                                            ease:Sine.easeOut, 
+                                            onComplete:function ():void
+                                            {
+                                                if (Sprite(gVo.userData).parent)
+                                                    Sprite(gVo.userData).parent.removeChild(Sprite(gVo.userData));
+                                            }} );
 		}
 	}
-	
-	
+    
 	/**
 	 * 渲染
 	 */
