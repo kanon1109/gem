@@ -429,18 +429,7 @@ public class Gem extends EventDispatcher
 			repeat = 1;
 			motionComplete = null;
 		}
-        else
-        {
-            //交换行列坐标
-            var row:int = prevGVo.row;
-            var column:int = prevGVo.column;
-            this.gemList[curGVo.row][curGVo.column] = prevGVo;
-            this.gemList[row][column] = curGVo;
-            prevGVo.row = curGVo.row;
-            prevGVo.column = curGVo.column;
-            curGVo.row = row;
-            curGVo.column = column;
-        }
+        else this.changeVo(prevGVo, curGVo);       
 		//交换位置
 		TweenMax.to(prevGVo, .3, { x:curGVo.x, y:curGVo.y, 
 									ease:Sine.easeOut, 
@@ -450,16 +439,48 @@ public class Gem extends EventDispatcher
 									repeat:repeat, yoyo:yoyo } );
 	}
 	
+	/**
+	 * 交换2个数据的行列
+	 * @param	gVoA		宝石数据A
+	 * @param	gVoB		宝石数据B
+	 */
+	private function changeVo(gVoA:GemVo, gVoB:GemVo):void 
+	{
+		//交换行列坐标
+		var row:int = gVoA.row;
+		var column:int = gVoA.column;
+		this.gemList[gVoB.row][gVoB.column] = gVoA;
+		this.gemList[row][column] = gVoB;
+		gVoA.row = gVoB.row;
+		gVoA.column = gVoB.column;
+		gVoB.row = row;
+		gVoB.column = column;
+	}
+	
 	private function onMotionComplete():void 
 	{
-		var length:int = this.sameColorList.length;
 		var gVo:GemVo;
+		var length:int = this.sameColorList.length;
+		//被删除数据的列坐标数组
+		var columnList:Array = [];
 		for (var i:int = length - 1; i >= 0; i -= 1) 
 		{
 			gVo = this.sameColorList[i];
 			this.removeGem(gVo);
 			this.sameColorList.splice(i, 1);
+			columnList.push(gVo.column);
 		}
+		//补全
+		this.reloadGem(columnList);
+	}
+	
+	/**
+	 * 填补被销毁的宝石
+	 * @param	columnList		被删除的列坐标列表
+	 */
+	private function reloadGem(columnList:Array):void
+	{
+		
 	}
 	
 	/**
@@ -480,11 +501,9 @@ public class Gem extends EventDispatcher
 			else if (prevGVo.row == curGVo.row)
 				this.sameColorList = this.checkHColor(prevGVo, curGVo); //判断纵向颜色
 			
-            trace("sameColorList.length", sameColorList.length);
-			if (sameColorList.length == 0)
-				this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
-			else
-				this.changePos(prevGVo, curGVo, false); //有相同颜色
+            trace("相同数量", sameColorList.length);
+			if (sameColorList.length == 0) this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
+			else this.changePos(prevGVo, curGVo, false); //有相同颜色
 		}
 		this.curGVo = null;
 		this.gemSelectEvent.gVo = null;
@@ -641,7 +660,6 @@ public class Gem extends EventDispatcher
         }
 		return sameHColorList.concat(sameVColorList);
 	}
-	
 	
 	/**
 	 * 销毁宝石数据
