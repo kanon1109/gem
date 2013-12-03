@@ -24,8 +24,21 @@ public class GemTest extends Sprite
         this.gem = new Gem(this.colorAry.length - 1, stage, 8, 8, 5, 5, 200, 60, 50, 50);
         this.gem.addEventListener(GemEvent.SELECT, selectGemHandler);
         this.gem.addEventListener(GemEvent.REMOVE, removeGemHandler);
+        this.gem.addEventListener(GemEvent.ADD_GEM, addGemHandler);
 		this.initDrawGem();
 		this.addEventListener(Event.ENTER_FRAME, loop);
+    }
+    
+    private function addGemHandler(event:GemEvent):void 
+    {
+        var gVo:GemVo = event.gVo as GemVo;
+        gVo.userData = new Sprite();
+        Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
+        Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
+        Sprite(gVo.userData).graphics.endFill();
+        Sprite(gVo.userData).x = gVo.x;
+        Sprite(gVo.userData).y = gVo.y;
+        this.addChild(Sprite(gVo.userData));
     }
 	
 	/**
@@ -106,6 +119,7 @@ public class GemTest extends Sprite
     
 	private function loop(event:Event):void 
 	{
+		this.gem.update();
 		this.render();
 	}
 }

@@ -7,6 +7,7 @@ import events.GemEvent;
 import flash.display.Stage;
 import flash.events.EventDispatcher;
 import flash.events.MouseEvent;
+import flash.geom.Point;
 import flash.utils.Dictionary;
 import utils.ArrayUtil;
 import utils.Random;
@@ -54,8 +55,12 @@ public class Gem extends EventDispatcher
 	private var gemSelectEvent:GemEvent;
 	//宝石被销毁事件
 	private var gemRemoveEvent:GemEvent;
+    //添加宝石事件
+	private var gemAddEvent:GemEvent;
 	//待销毁的相同颜色的数据列表
 	private var sameColorList:Array;
+    //下落宝石数组
+    private var fallList:Array;
     /**
      * @param	totalColorType      总的颜色类型
      * @param	stage               舞台用于点击
@@ -69,7 +74,8 @@ public class Gem extends EventDispatcher
      * @param	gemHeight           宝石高度
      * @param	minLinkNum          默认链接数量
      */
-    public function Gem(totalColorType:uint, stage:Stage, rows:uint, columns:uint, 
+    public function Gem(totalColorType:uint, stage:Stage, 
+                        rows:uint, columns:uint, 
                         gapH:Number, gapV:Number, 
                         startX:Number, startY:Number, 
                         gemWidth:Number, gemHeight:Number,
@@ -97,6 +103,7 @@ public class Gem extends EventDispatcher
     {
 		this.gemSelectEvent = new GemEvent(GemEvent.SELECT);
 		this.gemRemoveEvent = new GemEvent(GemEvent.REMOVE);
+		this.gemAddEvent = new GemEvent(GemEvent.ADD_GEM);
         this.stage.addEventListener(MouseEvent.MOUSE_DOWN, mouseDownHandler);
     }
     
@@ -114,24 +121,27 @@ public class Gem extends EventDispatcher
 		for (var i:int = 1; i <= this.totalColorType; i += 1)
 			this.colorList.push(i);
 		this.gemList = [];
+        this.fallList = [];
         this._gemDict = new Dictionary();
         var gVo:GemVo;
         var color:int;
+        var point:Point;
         for (var row:int = 0; row < this.rows; row += 1) 
         {
             this.gemList[row] = [];
             for (var column:int = 0; column < this.columns; column += 1) 
             {
                 gVo = new GemVo();
-                gVo.x = this.startX + column * (this.gemWidth + this.gapH);
-                gVo.y = this.startY + row * (this.gemHeight + this.gapV);
                 gVo.width = this.gemWidth;
                 gVo.height = this.gemHeight;
                 gVo.row = row;
                 gVo.column = column;
                 this.gemList[row][column] = gVo;
                 this._gemDict[gVo] = gVo;
-                
+                //设置坐标位置
+                point = this.getGemPos(row, column);
+                gVo.x = point.x;
+                gVo.y = point.y;
                 if (row < this.minSameNum - 1 && 
 					column < this.minSameNum - 1)
                 {
@@ -172,6 +182,18 @@ public class Gem extends EventDispatcher
         }
         this.totalWidth = this.rows * (this.gemWidth + this.gapH);
         this.totalHeight = this.columns * (this.gemHeight + this.gapV);
+    }
+    
+    /**
+     * 根据行和列获取宝石的坐标
+     * @param	row         行数
+     * @param	column      列数
+     * @return  坐标
+     */
+    private function getGemPos(row:int, column:int):Point
+    {
+        return new Point(this.startX + column * (this.gemWidth + this.gapH),
+                         this.startY + row * (this.gemHeight + this.gapV));
     }
     
     /**
@@ -423,7 +445,7 @@ public class Gem extends EventDispatcher
 	private function changePos(prevGVo:GemVo, curGVo:GemVo, yoyo:Boolean):void
 	{
 		var repeat:int = 0;
-		var motionComplete:Function = onMotionComplete;
+		var motionComplete:Function = removeSameColorGem;
 		if (yoyo) 
 		{
 			repeat = 1;
@@ -457,7 +479,10 @@ public class Gem extends EventDispatcher
 		gVoB.column = column;
 	}
 	
-	private function onMotionComplete():void 
+    /**
+     * 删除相同颜色的宝石
+     */
+	private function removeSameColorGem():void 
 	{
 		var gVo:GemVo;
 		var length:int = this.sameColorList.length;
@@ -468,9 +493,11 @@ public class Gem extends EventDispatcher
 			gVo = this.sameColorList[i];
 			this.removeGem(gVo);
 			this.sameColorList.splice(i, 1);
-			columnList.push(gVo.column);
+            //不存放相同的列数
+            if (columnList.indexOf(gVo.column) == -1)
+                columnList.push(gVo.column);
 		}
-		//补全
+		//填补被销毁的宝石
 		this.reloadGem(columnList);
 	}
 	
@@ -480,8 +507,78 @@ public class Gem extends EventDispatcher
 	 */
 	private function reloadGem(columnList:Array):void
 	{
-		
+        if (!columnList) return;
+        var length:int = columnList.length;
+        //当前列坐标
+        var column:int;
+        var gVo:GemVo;
+        //空行数量
+        var nullNum:int = 0;
+		for (var i:int = 0; i < length; i += 1) 
+        {
+            column = columnList[i];
+            nullNum = 0;
+            for (var row:int = this.rows - 1; row >= 0; row -= 1) 
+            {
+                gVo = this.gemList[row][column];
+                if (gVo) 
+                {
+                    //如果空行数量大于0 则往下移动空行数量个坐标
+                    if (nullNum > 0)
+                    {
+                        gVo.g = .9;
+                        gVo.row += nullNum;
+                        gVo.rangeY = this.getGemPos(row + nullNum, column).y;
+                        this.gemList[row][column] = null;
+                        this.gemList[row + nullNum][column] = gVo;
+                        this.fallList.push(gVo);
+                    }
+                }
+                else nullNum++;
+            }
+            //填补空余的格子
+            this.addColumn(nullNum, column);
+        }
+        
+        length = this.fallList.length;
+        for (i = 0; i < length; i += 1) 
+        {
+            gVo = this.fallList[i];
+            this.sameColorList.concat(this.checkFallColor(gVo));
+        }
+        trace(this.sameColorList);
 	}
+    
+    /**
+     * 根据行数增加一列
+     * @param	rowNum     被增加列的行数量
+     * @param	column     增加的列坐标
+     */
+    private function addColumn(rowNum:int, column):void
+    {
+        if (rowNum <= 0) return;
+        var gVo:GemVo;
+        var point:Point;
+        for (var row:int = 0; row < rowNum; row += 1) 
+        {
+            gVo = new GemVo();
+            gVo.g = .9;
+            gVo.row = row;
+            gVo.column = column;
+            point = this.getGemPos(row, column);
+            gVo.x = point.x;
+            gVo.width = this.gemWidth;
+            gVo.height = this.gemHeight;
+            gVo.y = point.y - rowNum * (this.gapV + gVo.width);
+            gVo.rangeY = point.y;
+            gVo.colorType = Random.randint(1, this.totalColorType);
+            this.gemList[row][column] = gVo;
+            this.gemAddEvent.gVo = gVo;
+            this.dispatchEvent(this.gemAddEvent);
+            this.fallList.push(gVo);
+            this.gemDict[gVo] = gVo;
+        }
+    }
 	
 	/**
 	 * 判断颜色
@@ -660,6 +757,49 @@ public class Gem extends EventDispatcher
         }
 		return sameHColorList.concat(sameVColorList);
 	}
+    
+    /**
+     * 判断下落的宝石数据的颜色
+     * @param	gVo     下落的宝石数据
+     * @return  相同颜色数组
+     */
+    private function checkFallColor(gVo:GemVo):Array
+    {
+        //横向相同颜色的列表
+		var sameVColorList:Array = [];
+		//纵向相同颜色的列表
+		var sameHColorList:Array = [];
+        //已经在相同颜色列表中的不做判断
+        trace("this.inSameColorList(gVo)", this.inSameColorList(gVo));
+        if (!this.inSameColorList(gVo))
+        {
+            //临时横向列表
+            var tempHArr:Array;
+            //临时纵向列表
+            var tempVArr:Array;
+            //先判断下边
+            //获取纵向相同的列表
+            tempVArr = this.getDownSameColorVoList(gVo.row, gVo.column, gVo.colorType);
+            if (tempVArr.length >= this.minSameNum - 1) 
+            {
+                //保存起始节点
+                tempVArr.unshift(gVo);
+                sameVColorList = sameVColorList.concat(tempVArr);
+            }
+                
+            //判断左、右面
+            //横向向相同的列表
+            tempHArr = this.getLeftSameColorVoList(gVo.row, gVo.column, gVo.colorType);
+            tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo.row, gVo.column, gVo.colorType));
+            if (tempHArr.length >= this.minSameNum - 1)
+            {
+                //如果纵向未保存过起始
+                if (sameHColorList.indexOf(gVo) == -1) tempHArr.unshift(gVo);
+                sameHColorList = sameHColorList.concat(tempHArr);
+            }
+        }
+        return sameHColorList.concat(sameVColorList);
+    }
 	
 	/**
 	 * 销毁宝石数据
@@ -674,14 +814,43 @@ public class Gem extends EventDispatcher
 	}
     
     /**
-     * 是否处于代销毁的相同颜色列表中
-     * @return      是否在列表中
+     * 是否处于待销毁的相同颜色列表中
+     * @return      是否在待销毁列表中
      */
     private function inSameColorList(gVo:GemVo):Boolean
     {
         if (this.sameColorList && this.sameColorList.indexOf(gVo) != -1)
             return true;
         return false;
+    }
+    
+    /**
+     * 下落
+     */
+    private function fall():void
+    {
+        if (!this.fallList || this.fallList.length == 0) return;
+        var length:int = this.fallList.length;
+        var gVo:GemVo;
+        for (var i:int = length - 1; i >= 0; i -= 1) 
+        {
+            gVo = this.fallList[i];
+            gVo.vy += gVo.g;
+            gVo.y += gVo.vy;
+            if (gVo.y >= gVo.rangeY)
+            {
+                gVo.y = gVo.rangeY;
+                gVo.vy = 0;
+                gVo.g = 0;
+                this.fallList.splice(i, 1);
+                if (this.fallList.length == 0)
+                {
+                    trace("removeSameColorGem");
+                    //判断纵横向是否有链接
+                    this.removeSameColorGem();
+                }
+            }
+        }
     }
 	
 	//***********public function***********
@@ -696,7 +865,7 @@ public class Gem extends EventDispatcher
 		{
 			//没有宝石 则返回第一个点击的宝石
 			this.curGVo = this.getGemVoByPos(posX, posY);
-            if (this.inSameColorList(this.curGVo)) 
+            if (this.inSameColorList(this.curGVo) || this.fallList[this.curGVo])
             {
                 trace("处于销毁列表中");
                 this.curGVo = null;
@@ -721,7 +890,9 @@ public class Gem extends EventDispatcher
 			//判断是否属于第一次点击的周围4个点
 			if (!this.checkRoundGem(gVo, this.curGVo.row, this.curGVo.column) || 
 				TweenMax.isTweening(this.curGVo) || 
-				TweenMax.isTweening(gVo))
+				TweenMax.isTweening(gVo) ||
+                this.fallList[this.curGVo] ||
+                this.fallList[gVo])
 			{
 				//不属于周围4个或者点击的2个点都在运动中
                 trace("不属于周围4个");
@@ -730,11 +901,18 @@ public class Gem extends EventDispatcher
 				this.dispatchEvent(this.gemSelectEvent);
 				return;
 			}
-			
 			//判断颜色
 			this.checkColor(this.curGVo, gVo);
 		}
 	}
+    
+    /**
+     * 更新数据
+     */
+    public function update():void
+    {
+       this.fall();
+    }
 	
     /**
      * 销毁
@@ -748,6 +926,10 @@ public class Gem extends EventDispatcher
 		this.curGVo = null;
 		this.colorList = null;
 		this.sameColorList = null;
+        this.gemSelectEvent = null;
+        this.gemRemoveEvent = null;
+        this.gemAddEvent = null;
+        this.fallList = null;
     }
 	
 	/**

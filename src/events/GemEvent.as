@@ -12,6 +12,8 @@ public class GemEvent extends Event
 	public static const SELECT:String = "select";
 	//被销毁事件
 	public static const REMOVE:String = "remove";
+    /*添加宝石事件*/
+	public static const ADD_GEM:String = "addGem";
 	//选中的宝石数据
 	public var gVo:GemVo;
 	public function GemEvent(type:String, gVo:GemVo = null, bubbles:Boolean=false, cancelable:Boolean=false) 
