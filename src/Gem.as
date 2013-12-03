@@ -332,7 +332,7 @@ public class Gem extends EventDispatcher
 	private function getDownSameColorVoList(curRow:int, curColumn:int, color:int):Array
     {
 		var arr:Array = [];
-		if (curRow == 0) return arr;
+		if (curRow == this.rows - 1) return arr;
         var prevGVo:GemVo;
         for (var row:int = curRow + 1; row < this.rows; row += 1) 
         {
@@ -544,9 +544,8 @@ public class Gem extends EventDispatcher
         for (i = 0; i < length; i += 1) 
         {
             gVo = this.fallList[i];
-            this.sameColorList.concat(this.checkFallColor(gVo));
+            this.sameColorList = this.sameColorList.concat(this.checkFallColor(gVo));
         }
-        trace(this.sameColorList);
 	}
     
     /**
@@ -599,7 +598,7 @@ public class Gem extends EventDispatcher
 				this.sameColorList = this.checkHColor(prevGVo, curGVo); //判断纵向颜色
 			
             trace("相同数量", sameColorList.length);
-			if (sameColorList.length == 0) this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
+			if (this.sameColorList.length == 0) this.changePos(prevGVo, curGVo, true); //纵横没有相同颜色
 			else this.changePos(prevGVo, curGVo, false); //有相同颜色
 		}
 		this.curGVo = null;
@@ -770,7 +769,7 @@ public class Gem extends EventDispatcher
 		//纵向相同颜色的列表
 		var sameHColorList:Array = [];
         //已经在相同颜色列表中的不做判断
-        trace("this.inSameColorList(gVo)", this.inSameColorList(gVo));
+        //trace("this.inSameColorList(gVo)", this.inSameColorList(gVo));
         if (!this.inSameColorList(gVo))
         {
             //临时横向列表
@@ -780,7 +779,7 @@ public class Gem extends EventDispatcher
             //先判断下边
             //获取纵向相同的列表
             tempVArr = this.getDownSameColorVoList(gVo.row, gVo.column, gVo.colorType);
-            if (tempVArr.length >= this.minSameNum - 1) 
+			if (tempVArr.length >= this.minSameNum - 1) 
             {
                 //保存起始节点
                 tempVArr.unshift(gVo);
@@ -791,7 +790,7 @@ public class Gem extends EventDispatcher
             //横向向相同的列表
             tempHArr = this.getLeftSameColorVoList(gVo.row, gVo.column, gVo.colorType);
             tempHArr = tempHArr.concat(this.getRightSameColorVoList(gVo.row, gVo.column, gVo.colorType));
-            if (tempHArr.length >= this.minSameNum - 1)
+			if (tempHArr.length >= this.minSameNum - 1)
             {
                 //如果纵向未保存过起始
                 if (sameHColorList.indexOf(gVo) == -1) tempHArr.unshift(gVo);
@@ -845,7 +844,6 @@ public class Gem extends EventDispatcher
                 this.fallList.splice(i, 1);
                 if (this.fallList.length == 0)
                 {
-                    trace("removeSameColorGem");
                     //判断纵横向是否有链接
                     this.removeSameColorGem();
                 }
@@ -865,7 +863,8 @@ public class Gem extends EventDispatcher
 		{
 			//没有宝石 则返回第一个点击的宝石
 			this.curGVo = this.getGemVoByPos(posX, posY);
-            if (this.inSameColorList(this.curGVo) || this.fallList[this.curGVo])
+            if (this.inSameColorList(this.curGVo) ||
+				this.fallList.indexOf(this.curGVo) != -1)
             {
                 trace("处于销毁列表中");
                 this.curGVo = null;
@@ -891,8 +890,8 @@ public class Gem extends EventDispatcher
 			if (!this.checkRoundGem(gVo, this.curGVo.row, this.curGVo.column) || 
 				TweenMax.isTweening(this.curGVo) || 
 				TweenMax.isTweening(gVo) ||
-                this.fallList[this.curGVo] ||
-                this.fallList[gVo])
+                this.fallList.indexOf(this.curGVo) != -1 ||
+                this.fallList.indexOf(gVo) != -1)
 			{
 				//不属于周围4个或者点击的2个点都在运动中
                 trace("不属于周围4个");
