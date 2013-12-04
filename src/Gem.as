@@ -277,7 +277,7 @@ public class Gem extends EventDispatcher
         }
         return arr;
     }
-	
+		
 	/**
 	 * 获取当前右边横向上的相邻相同颜色的数量
 	 * @param	curRow			当前行坐标
