@@ -6,6 +6,7 @@ import data.GemVo;
 import events.GemEvent;
 import flash.display.Sprite;
 import flash.events.Event;
+import flash.events.KeyboardEvent;
 import utils.Random;
 /**
  * ...宝石迷阵测试类
@@ -27,7 +28,20 @@ public class GemTest extends Sprite
         this.gem.addEventListener(GemEvent.ADD_GEM, addGemHandler);
 		this.initDrawGem();
 		this.addEventListener(Event.ENTER_FRAME, loop);
+		stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDownHandler);
     }
+	
+	private function keyDownHandler(event:KeyboardEvent):void 
+	{
+		var gVo:GemVo = this.gem.checkCanChangeVo();
+		if (gVo)
+		{
+			this.selectedGVo = gVo;
+			this.rect.x = this.selectedGVo.x;
+			this.rect.y = this.selectedGVo.y;
+			this.addChild(this.rect);
+		}
+	}
     
     private function addGemHandler(event:GemEvent):void 
     {
