@@ -7,6 +7,8 @@ import events.GemEvent;
 import flash.display.Sprite;
 import flash.events.Event;
 import flash.events.KeyboardEvent;
+import flash.events.MouseEvent;
+import flash.ui.Keyboard;
 import utils.Random;
 /**
  * ...宝石迷阵测试类
@@ -22,13 +24,14 @@ public class GemTest extends Sprite
     public function GemTest() 
     {
 		this.rect = new Rect();
-        this.gem = new Gem(this.colorAry.length - 1, stage, 8, 8, 5, 5, 200, 60, 50, 50);
+        this.gem = new Gem(this.colorAry.length - 1, 8, 8, 5, 5, 200, 180, 50, 50);
         this.gem.addEventListener(GemEvent.SELECT, selectGemHandler);
         this.gem.addEventListener(GemEvent.REMOVE, removeGemHandler);
         this.gem.addEventListener(GemEvent.ADD_GEM, addGemHandler);
 		this.initDrawGem();
 		this.addEventListener(Event.ENTER_FRAME, loop);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDownHandler);
+		stage.addEventListener(MouseEvent.MOUSE_DOWN, mouseDownHandler);
     }
 	
 	private function keyDownHandler(event:KeyboardEvent):void 
@@ -41,7 +44,16 @@ public class GemTest extends Sprite
 			this.rect.y = this.selectedGVo.y;
 			this.addChild(this.rect);
 		}
+		if (event.keyCode == Keyboard.S)
+			this.removeEventListener(Event.ENTER_FRAME, loop);
+		else if (event.keyCode == Keyboard.A)
+			this.addEventListener(Event.ENTER_FRAME, loop);
 	}
+	
+	private function mouseDownHandler(event:MouseEvent):void 
+    {
+        this.gem.selectGem(event.stageX, event.stageY);
+    }
     
     private function addGemHandler(event:GemEvent):void 
     {
@@ -99,6 +111,8 @@ public class GemTest extends Sprite
 		{
             var posX:Number = gVo.x + gVo.width * .5;
             var posY:Number = gVo.y + gVo.height * .5;
+			//Sprite(gVo.userData).alpha *= .5;
+			//if (Sprite(gVo.userData).alpha < .1) Sprite(gVo.userData).parent.removeChild(Sprite(gVo.userData));
 			TweenMax.to(gVo.userData, .2, { scaleX:0, scaleY:0, 
                                             x:posX, y:posY,
                                             ease:Sine.easeOut, 

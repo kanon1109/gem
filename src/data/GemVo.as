@@ -28,5 +28,14 @@ public class GemVo
     public var rangeY:Number = 0;
     /**用户数据*/
     public var userData:*;
+	
+	/**
+	 * 转行字符串
+	 * @return		返回行列数据
+	 */
+	public function toString():String
+	{
+		return "行：" + this.row + " 列：" + this.column;
+	}
 }
 }
