@@ -249,6 +249,36 @@ public class Gem extends EventDispatcher
 	}
     
     /**
+	 * 获取相邻下边超过默认链接数量的相同颜色数据的颜色
+	 * @param	curRow			当前行坐标
+	 * @param	curColumn		当前列坐标
+	 * @return  相邻的颜色类型，如果未超过则返回0
+	 */
+    private function getDownVoColor(curRow:int, curColumn:int):int
+    {
+        if (curRow >= this.rows - 2) return 0;
+		var color:int = 0;
+		var prevGVo:GemVo;
+		//相同颜色的数量
+		var num:int = 0;
+		for (var row:int = curRow + 1; row < curRow + 2; row += 1) 
+        {
+			prevGVo = this.gemList[row][curColumn];
+			if (color == 0) 
+			{
+				color = prevGVo.colorType;
+			}
+			else
+			{
+				if (color == prevGVo.colorType) num++;
+				else break;
+			}
+		}
+		if (num > 0) return color;
+		return 0;
+    }
+    
+    /**
      * 获取当前左边横向上的相邻相同颜色的数量
      * @param	curRow              当前行坐标
      * @param	curColumn           当前列坐标
@@ -264,6 +294,7 @@ public class Gem extends EventDispatcher
         {
             prevGVo = this.gemList[curRow][column];
             if (!prevGVo) break;
+            if (this.checkInFallList(prevGVo)) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -286,6 +317,7 @@ public class Gem extends EventDispatcher
         {
             prevGVo = this.gemList[curRow][column];
             if (!prevGVo) break;
+            if (this.checkInFallList(prevGVo)) break;
             if (prevGVo.colorType == color) arr.push(prevGVo);
             else break;
         }
@@ -569,6 +601,7 @@ public class Gem extends EventDispatcher
         var gVo:GemVo;
         var point:Point;
 		var columnList:Array;
+        var color:int;
         for (var row:int = rowNum - 1; row >= 0; row -= 1) 
         {
 			columnList = this.fallList[column];
@@ -584,7 +617,10 @@ public class Gem extends EventDispatcher
 			if (columnList.length == 0) gVo.y = point.y - rowNum * (this.gapV + gVo.height);
 			else gVo.y = columnList[columnList.length - 1].y - this.gapV - gVo.height;
             gVo.rangeY = point.y;
-            gVo.colorType = Random.randint(1, this.totalColorType);
+            //第一个颜色随机
+            if (row == rowNum - 1) gVo.colorType = Random.randint(1, this.totalColorType);
+            color = this.getDownVoColor(gVo.row, gVo.column);
+            gVo.colorType = this.randomColor(color);
 			columnList.push(gVo);
             this.gemList[row][column] = gVo;
 			this.gemDict[gVo] = gVo;
