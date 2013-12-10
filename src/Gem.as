@@ -153,7 +153,7 @@ public class Gem extends EventDispatcher
 						else gVo.colorType = this.randomColor(color);
 					}
 					else if (column < this.minSameNum - 1 && 
-							row >= this.minSameNum - 1)
+							 row >= this.minSameNum - 1)
 					{
 						//前2列 后2行
 						color = this.getUpVoColor(row, column);
@@ -227,7 +227,7 @@ public class Gem extends EventDispatcher
 	 */
 	private function getUpVoColor(curRow:int, curColumn:int):int
     {
-		if (curRow == 0) return 0;
+		if (curRow < 2) return 0;
 		var color:int = 0;
 		var prevGVo:GemVo;
 		//相同颜色的数量
@@ -275,7 +275,6 @@ public class Gem extends EventDispatcher
 				else break;
 			}
 		}
-        //trace("num", num,  "color", color, this.colorToString(color));
 		if (num > 0) return color;
 		return 0;
     }
@@ -566,7 +565,8 @@ public class Gem extends EventDispatcher
                     //如果空行数量大于0 则往下移动空行数量个坐标
                     if (nullNum > 0)
                     {
-                        gVo.g = this.g;
+						gVo.g = 0;
+						gVo.vy = 0;
                         gVo.isInPosition = false;
                         gVo.row += nullNum;
                         gVo.rangeY = this.getGemPos(row + nullNum, column).y;
@@ -579,6 +579,7 @@ public class Gem extends EventDispatcher
             }
             //填补空余的格子
             this.addColumn(nullNum, column);
+			//根据行数降序排列
             this.fallList[column].sortOn("row", Array.NUMERIC | Array.DESCENDING);
         }
 	}
@@ -596,26 +597,24 @@ public class Gem extends EventDispatcher
         var point:Point;
 		var columnList:Array;
         var color:int;
-        for (var row:int = rowNum - 1; row >= 0; row -= 1) 
+        for (var row:int = 0; row < rowNum; row += 1) 
         {
 			columnList = this.fallList[column];
             gVo = new GemVo();
-            gVo.g = this.g;
             gVo.row = row;
             gVo.column = column;
+			gVo.g = 0;
+			gVo.vy = 0;
             gVo.width = this.gemWidth;
             gVo.height = this.gemHeight;
 			point = this.getGemPos(row, column);
 			gVo.x = point.x;
             gVo.isInPosition = false;
-			//如果是第一个添加进fallList的数据
-			//if (columnList.length == 0) gVo.y = point.y - rowNum * (this.gapV + gVo.height);
-			//else gVo.y = columnList[columnList.length - 1].y - this.gapV - gVo.height;
-            gVo.y = 120;
+            gVo.y = this.startY - (this.gemHeight + this.gapH) * 2;
             gVo.rangeY = point.y;
-            //第一个颜色随机
-            if (row == rowNum - 1) gVo.colorType = Random.randint(1, this.totalColorType);
-            color = this.getDownVoColor(gVo.row, gVo.column);
+            //第一个颜色随机 
+            if (row == 0) gVo.colorType = Random.randint(1, this.totalColorType);
+            color = this.getUpVoColor(gVo.row, gVo.column);
             gVo.colorType = this.randomColor(color);
 			columnList.push(gVo);
             this.gemList[row][column] = gVo;
@@ -808,8 +807,6 @@ public class Gem extends EventDispatcher
 		//纵向相同颜色的列表
 		var sameHColorList:Array = [];
         //已经在相同颜色列表中的不做判断
-        trace(gVo.toString());
-        trace("inSameColorList", this.inSameColorList(gVo));
         if (!this.inSameColorList(gVo))
         {
             //临时横向列表
@@ -819,6 +816,7 @@ public class Gem extends EventDispatcher
             //先判断下边
             //获取纵向相同的列表
             tempVArr = this.getDownSameColorVoList(gVo.row, gVo.column, gVo.colorType);
+            tempVArr = tempVArr.concat(this.getUpSameColorVoList(gVo.row, gVo.column, gVo.colorType));
 			if (tempVArr.length >= this.minSameNum - 1) 
             {
                 //保存起始节点
@@ -874,25 +872,30 @@ public class Gem extends EventDispatcher
         var gVo:GemVo;
 		for (var column:int = 0; column < this.columns; column += 1) 
         {
-			length = this.fallList[column].length;
-			for (var i:int = length - 1; i >= 0; i -= 1) 
+			for (var i:int = 0; i < this.fallList[column].length; i += 1)
 			{
 				gVo = this.fallList[column][i];
 				gVo.vy += gVo.g;
 				gVo.y += gVo.vy;
+				if (i == 0)
+				{
+					gVo.g = this.g;
+				}
+				else
+				{
+					var prevGVo:GemVo = this.fallList[column][i - 1];
+					if (Math.abs(prevGVo.y - gVo.y) >= this.gemHeight)
+						gVo.g = this.g;
+				}
 				if (gVo.y >= gVo.rangeY)
 				{
 					gVo.y = gVo.rangeY;
                     gVo.isInPosition = true;
 					gVo.vy = 0;
 					gVo.g = 0;
-                    trace("this.fallList.length", this.fallList.length);
 					this.fallList[column].splice(i, 1);
-                    trace("fallList column", column);
                     this.sameColorList = this.sameColorList.concat(this.checkFallColor(gVo));
-                    trace("this.sameColorList", this.sameColorList.length);
                     this.removeSameColorGem();
-                    trace("over this.fallList.length", this.fallList.length);
 				}
 			}
 		}
