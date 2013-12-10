@@ -553,6 +553,7 @@ public class Gem extends EventDispatcher
         var gVo:GemVo;
         //空行数量
         var nullNum:int = 0;
+		var index:int;
 		for (var i:int = 0; i < length; i += 1) 
         {
             column = columnList[i];
@@ -565,14 +566,14 @@ public class Gem extends EventDispatcher
                     //如果空行数量大于0 则往下移动空行数量个坐标
                     if (nullNum > 0)
                     {
-						gVo.g = 0;
-						gVo.vy = 0;
                         gVo.isInPosition = false;
                         gVo.row += nullNum;
                         gVo.rangeY = this.getGemPos(row + nullNum, column).y;
                         this.gemList[row][column] = null;
                         this.gemList[row + nullNum][column] = gVo;
-						this.fallList[column].push(gVo);
+						index = this.fallList[column].indexOf(gVo);
+						//trace("index", index);
+						if (index == -1) this.fallList[column].push(gVo);
                     }
                 }
                 else nullNum++;
@@ -592,7 +593,6 @@ public class Gem extends EventDispatcher
     private function addColumn(rowNum:int, column:int):void
     {
         if (rowNum <= 0) return;
-        trace("-----column: " + column + "----------------")
         var gVo:GemVo;
         var point:Point;
 		var columnList:Array;
@@ -610,7 +610,7 @@ public class Gem extends EventDispatcher
 			point = this.getGemPos(row, column);
 			gVo.x = point.x;
             gVo.isInPosition = false;
-            gVo.y = this.startY - (this.gemHeight + this.gapH) * 2;
+            gVo.y = this.startY - (this.gemHeight + this.gapH) * 3;
             gVo.rangeY = point.y;
             //第一个颜色随机 
             if (row == 0) gVo.colorType = Random.randint(1, this.totalColorType);

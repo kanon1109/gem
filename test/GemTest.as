@@ -18,13 +18,13 @@ public class GemTest extends Sprite
 {
     private var gem:Gem;
     private var colorAry:Array = [null, 0xFF00FF, 0xFFCC00, 0x0000FF, 
-										0x55FF33, /*0x55CCFF, 0xC88CC0*/];
+										0x55FF33, 0x55CCFF, 0xC88CC0];
 	private var rect:Sprite;
 	private var selectedGVo:GemVo;
     public function GemTest() 
     {
 		this.rect = new Rect();
-        this.gem = new Gem(this.colorAry.length - 1, 8, 8, 5, 5, 200, 180, 50, 50);
+        this.gem = new Gem(this.colorAry.length - 1, 8, 8, 5, 5, 200, 80, 50, 50);
         this.gem.addEventListener(GemEvent.SELECT, selectGemHandler);
         this.gem.addEventListener(GemEvent.REMOVE, removeGemHandler);
         this.gem.addEventListener(GemEvent.ADD_GEM, addGemHandler);
@@ -111,8 +111,6 @@ public class GemTest extends Sprite
 		{
             var posX:Number = gVo.x + gVo.width * .5;
             var posY:Number = gVo.y + gVo.height * .5;
-			//Sprite(gVo.userData).alpha *= .5;
-			//if (Sprite(gVo.userData).alpha < .1) Sprite(gVo.userData).parent.removeChild(Sprite(gVo.userData));
 			TweenMax.to(gVo.userData, .2, { scaleX:0, scaleY:0, 
                                             x:posX, y:posY,
                                             ease:Sine.easeOut, 
