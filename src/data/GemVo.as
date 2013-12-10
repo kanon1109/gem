@@ -28,7 +28,8 @@ public class GemVo
     public var rangeY:Number = 0;
     /**用户数据*/
     public var userData:*;
-	
+	/**是否归位*/
+    public var isInPosition:Boolean;
 	/**
 	 * 转行字符串
 	 * @return		返回行列数据
