@@ -41,10 +41,6 @@ public class Gem extends EventDispatcher
     private var startX:Number;
     //起始位置y
     private var startY:Number;
-    //总宽度
-    private var totalWidth:Number;
-    //总高度
-    private var totalHeight:Number;
 	//当前点击的宝石数据
 	private var curGVo:GemVo;
 	//宝石被选中事件
@@ -59,6 +55,8 @@ public class Gem extends EventDispatcher
     private var fallList:Array;
 	//重力加速度
 	private const g:Number = .9;
+	//下落时的间隔
+	private var fallGapV:Number;
     /**
      * @param	totalColorType      总的颜色类型
      * @param	rows                行数
@@ -173,8 +171,7 @@ public class Gem extends EventDispatcher
 				if (!this.fallList[column]) this.fallList[column] = [];
             }
         }
-        this.totalWidth = this.rows * (this.gemWidth + this.gapH);
-        this.totalHeight = this.columns * (this.gemHeight + this.gapV);
+		this.fallGapV = this.gapV * 2;
     }
     
     /**
@@ -884,7 +881,7 @@ public class Gem extends EventDispatcher
 				else
 				{
 					var prevGVo:GemVo = this.fallList[column][i - 1];
-					if (Math.abs(prevGVo.y - gVo.y) >= this.gemHeight)
+					if (Math.abs(prevGVo.y - gVo.y) >= this.fallGapV)
 						gVo.g = this.g;
 				}
 				if (gVo.y >= gVo.rangeY)
@@ -901,17 +898,6 @@ public class Gem extends EventDispatcher
 		}
     }
     
-    /**
-     * 颜色描述
-     * @param	color   颜色
-     * @return  描述
-     */
-    private function colorToString(color:int):String
-    {
-        var strList:Array = ["无色", "粉", "黄", "蓝", "绿"]
-        return strList[color];
-    }
-	
 	//***********public function***********
 	/**
 	 * 点击宝石
@@ -965,6 +951,7 @@ public class Gem extends EventDispatcher
 	 */
 	public function checkCanChangeVo():GemVo
 	{
+		if (!this.gemList) return null;
 		var gVo:GemVo;
 		var leftGVo:GemVo;
 		var downGVo:GemVo;

@@ -48,6 +48,8 @@ public class GemTest extends Sprite
 			this.removeEventListener(Event.ENTER_FRAME, loop);
 		else if (event.keyCode == Keyboard.A)
 			this.addEventListener(Event.ENTER_FRAME, loop);
+		else if (event.keyCode == Keyboard.D)
+			this.gem.destroy();
 	}
 	
 	private function mouseDownHandler(event:MouseEvent):void 
