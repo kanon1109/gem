@@ -25,7 +25,6 @@ public class GemTest extends Sprite
     {
 		this.rect = new Rect();
         this.gem = new Gem(this.colorAry.length - 1, 8, 8, 5, 5, 200, 80, 50, 50);
-        this.gem.addEventListener(GemEvent.SELECT, selectGemHandler);
         this.gem.addEventListener(GemEvent.REMOVE, removeGemHandler);
         this.gem.addEventListener(GemEvent.ADD_GEM, addGemHandler);
 		this.initDrawGem();
@@ -54,14 +53,27 @@ public class GemTest extends Sprite
 	
 	private function mouseDownHandler(event:MouseEvent):void 
     {
-        this.gem.selectGem(event.stageX, event.stageY);
+		var gVo:GemVo = this.gem.selectGem(event.stageX, event.stageY);
+		if (gVo)
+		{
+			this.selectedGVo = gVo;
+			this.rect.x = this.selectedGVo.x;
+			this.rect.y = this.selectedGVo.y;
+			this.addChild(this.rect);
+		}
+		else
+		{
+			if (this.rect.parent)
+				this.rect.parent.removeChild(this.rect);
+			this.selectedGVo = null;
+		}
     }
     
     private function addGemHandler(event:GemEvent):void 
     {
         var gVo:GemVo = event.gVo as GemVo;
         gVo.userData = new Sprite();
-        Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
+        Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.color]);
         Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
         Sprite(gVo.userData).graphics.endFill();
         Sprite(gVo.userData).x = gVo.x;
@@ -78,7 +90,7 @@ public class GemTest extends Sprite
 		for each (gVo in this.gem.gemDict) 
 		{
 			gVo.userData = new Sprite();
-			Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.colorType]);
+			Sprite(gVo.userData).graphics.beginFill(this.colorAry[gVo.color]);
 			Sprite(gVo.userData).graphics.drawRoundRect(0, 0, 50, 50, 5, 5);
 			Sprite(gVo.userData).graphics.endFill();
 			Sprite(gVo.userData).x = gVo.x;
@@ -87,25 +99,6 @@ public class GemTest extends Sprite
 		}
     }
 	
-	//选中宝石或者取消选择
-	private function selectGemHandler(event:GemEvent):void 
-	{
-		var gVo:GemVo = event.gVo as GemVo;
-		if (gVo)
-		{
-			this.selectedGVo = gVo;
-			this.rect.x = this.selectedGVo.x;
-			this.rect.y = this.selectedGVo.y;
-			this.addChild(this.rect);
-		}
-		else
-		{
-			if (this.rect.parent)
-				this.rect.parent.removeChild(this.rect);
-			this.selectedGVo = null;
-		}
-	}
-    
 	private function removeGemHandler(event:GemEvent):void 
 	{
 		var gVo:GemVo = event.gVo as GemVo;

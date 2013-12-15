@@ -43,8 +43,6 @@ public class Gem extends EventDispatcher
     private var startY:Number;
 	//当前点击的宝石数据
 	private var curGVo:GemVo;
-	//宝石被选中事件
-	private var gemSelectEvent:GemEvent;
 	//宝石被销毁事件
 	private var gemRemoveEvent:GemEvent;
     //添加宝石事件
@@ -95,10 +93,8 @@ public class Gem extends EventDispatcher
      */
     private function initEvent():void 
     {
-		this.gemSelectEvent = new GemEvent(GemEvent.SELECT);
 		this.gemRemoveEvent = new GemEvent(GemEvent.REMOVE);
 		this.gemAddEvent = new GemEvent(GemEvent.ADD_GEM);
-        
     }
     
     /**
@@ -904,26 +900,24 @@ public class Gem extends EventDispatcher
 	 * @param	posX	x位置	
 	 * @param	posY	y位置
 	 */
-	public function selectGem(posX:Number, posY:Number):void
+	public function selectGem(posX:Number, posY:Number):GemVo
 	{
 		if (!this.curGVo)
 		{
 			//没有宝石 则返回第一个点击的宝石
 			this.curGVo = this.getGemVoByPos(posX, posY);
-			if (!this.curGVo) return;
+			if (!this.curGVo) return null;
             if (this.inSameColorList(this.curGVo) ||
 				!this.curGVo.isInPosition)
             {
                 this.curGVo = null;
-                return
+                return this.curGVo;
             }
-			this.gemSelectEvent.gVo = this.curGVo;
-			this.dispatchEvent(this.gemSelectEvent);
 		}
 		else
 		{
 			var gVo:GemVo = this.getGemVoByPos(posX, posY);
-			if (!gVo) return;
+			if (!gVo) return null;
 			//判断是否属于第一次点击的周围4个点
 			if (!this.isRoundGem(gVo, this.curGVo.row, this.curGVo.column) || 
                 !this.curGVo.isInPosition ||
@@ -931,18 +925,15 @@ public class Gem extends EventDispatcher
 			{
 				//不属于周围4个或者点击的2个点都在运动中
 				this.curGVo = gVo;
-				this.gemSelectEvent.gVo = gVo;
-				this.dispatchEvent(this.gemSelectEvent);
-				return;
+				return this.curGVo;
 			}
 			//判断是否能交换
 			this.sameColorList = this.checkColor(this.curGVo, gVo);
 			if (this.sameColorList.length == 0) this.changePos(this.curGVo, gVo, true); //纵横没有相同颜色
 			else this.changePos(this.curGVo, gVo, false); //有相同颜色
 			this.curGVo = null;
-			this.gemSelectEvent.gVo = null;
-			this.dispatchEvent(this.gemSelectEvent);
 		}
+		return this.curGVo;
 	}
 	
 	/**
@@ -998,7 +989,6 @@ public class Gem extends EventDispatcher
 		this.curGVo = null;
 		this.colorList = null;
 		this.sameColorList = null;
-        this.gemSelectEvent = null;
         this.gemRemoveEvent = null;
         this.gemAddEvent = null;
         this.fallList = null;

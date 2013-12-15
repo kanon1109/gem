@@ -8,8 +8,6 @@ import flash.events.Event;
  */
 public class GemEvent extends Event 
 {
-	//选中事件
-	public static const SELECT:String = "select";
 	//被销毁事件
 	public static const REMOVE:String = "remove";
     /*添加宝石事件*/
