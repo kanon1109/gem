@@ -7,7 +7,7 @@ package data
 public class GemVo 
 {
     /**钻石类型*/
-    public var colorType:int;
+    public var color:int;
     /**x坐标位置*/
     public var x:Number;
     /**y坐标位置*/
@@ -30,13 +30,14 @@ public class GemVo
     public var userData:*;
 	/**是否归位*/
     public var isInPosition:Boolean;
+	
 	/**
 	 * 转行字符串
 	 * @return		返回行列数据
 	 */
 	public function toString():String
 	{
-		return "行：" + this.row + " 列：" + this.column;
+		return "row：" + this.row + " column：" + this.column;
 	}
 }
 }
